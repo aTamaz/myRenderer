@@ -82,6 +82,9 @@ struct Sphere {
         return 0;
     }
 };
+// x horizontal: left2right
+// y vertical: bottom2up
+// z depth: back2front (out)
 Sphere spheres[] = { //Scene: radius, position, emission, color, material
     Sphere(1e5, Vec( 1e5+1,40.8,81.6), Vec(),Vec(.75,.25,.25),DIFF), // Left
     Sphere(1e5, Vec(-1e5+99,40.8,81.6),Vec(),Vec(.25,.25,.75),DIFF), // Right
