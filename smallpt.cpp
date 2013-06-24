@@ -136,17 +136,15 @@ void saveImage(Vec* image, int width, int height, int numSamples, int seconds)
 }
 inline bool intersect(const Ray &r, double &t, int &id)
 {
-    double n = sizeof(spheres)/sizeof(Sphere);
-    double d;
+    int n = (int) (sizeof(spheres)/sizeof(Sphere));
     double inf = t = 1e20;
-    for (int i = 0; i <= n; i++) {
+    for (int i = 0; i < n; i++) {
         double d = spheres[i].intersect(r);
         if (d != 0 && d < t) {
             t = d;
-            id = t;
+            id = i;
         }
     }
-    for (int i = int(n); i--;) if((d=spheres[i].intersect(r))&&d<t){t=d;id=i;}
     return t<inf;
 }
 Vec radiance(const Ray &r, int depth, unsigned short *Xi)
@@ -246,4 +244,3 @@ int main(int argc, char *argv[])
     render(numSamples, w, h);
     return 0;
 }
-
