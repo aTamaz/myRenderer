@@ -1,0 +1,38 @@
+CVS
+.cvsignore
+*.vcproj*
+*.ncb*
+*.sln*
+*.suo*
+api.h
+version.rc
+resource.h
+version.cpp
+init.cpp
+GNUmakefile
+Makefile
+*~
+HxIndex*.doc
+HxRefGuide.doc
+hxservicemanager.aps
+Thumbs.db
+.DS_Store
+.*.swp
+
+# Qt creator project files
+*.config
+*.creator
+*.creator.user
+*.files
+*.includes
+*.pro
+*.pro.user
+*.pro.shared
+CMakeLists.txt.user*
+
+# Intel VTune directories.
+*/VTune/
+
+# XCode directories
+*.xcodeproj/
+
