@@ -6,7 +6,6 @@
 #include <cmath>
 #include <cstdlib>
 #include <cstdio>
-#include <omp.h>
 #include <iostream>
 #include <sstream>
 #include <iomanip>
