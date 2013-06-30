@@ -92,10 +92,12 @@ Sphere spheres[] = { //Scene: radius, position, emission, color, material
     Sphere(1e5, Vec(50,40.8,-1e5+170), Vec(),Vec(),           DIFF), // Front
     Sphere(1e5, Vec(50, 1e5, 81.6),    Vec(),Vec(.75,.75,.75),DIFF), // Bottom
     Sphere(1e5, Vec(50,-1e5+81.6,81.6),Vec(),Vec(.75,.75,.75),DIFF), // Top
-    Sphere(16.5,Vec(27,16.5,47),       Vec(),Vec(1,1,1)*.999, SPEC), // Mirror
+    Sphere(16.5,Vec(27,16.5,90),       Vec(),Vec(1,1,1)*.999, SPEC), // Mirror
     Sphere(16.5,Vec(73,16.5,78),       Vec(),Vec(1,1,1)*.999, REFR), // Glas
-    Sphere(600, Vec(50,681.6-.27,81.6),Vec(12,12,12),  Vec(), DIFF)  // Light
+//    Sphere(600, Vec(50,681.6-.27,81.6),Vec(12,12,12),  Vec(), DIFF)  // Light
+    Sphere(1.5, Vec(50,81.6-16.5,81.6),Vec(4,4,4)*100,  Vec(), DIFF),  // small light
 };
+int numSpheres = sizeof(spheres)/sizeof(Sphere);
 inline double clamp(double x)
 {
     return x < 0 ? 0 : x > 1 ? 1 : x;
@@ -139,9 +141,8 @@ void saveImage(Vec* image, int width, int height, int numSamples, int seconds)
 }
 inline bool intersect(const Ray &r, double &t, int &id)
 {
-    int n = (int) (sizeof(spheres)/sizeof(Sphere));
     double inf = t = 1e20;
-    for (int i = 0; i < n; i++) {
+    for (int i = 0; i < numSpheres; i++) {
         double d = spheres[i].intersect(r);
         if (d != 0 && d < t) {
             t = d;
@@ -150,7 +151,7 @@ inline bool intersect(const Ray &r, double &t, int &id)
     }
     return t<inf;
 }
-Vec radiance(const Ray &r, int depth, unsigned short *Xi)
+Vec radiance(const Ray &r, int depth, unsigned short *Xi, int E = 1)
 {
     double t;                               // distance to intersection
     int id(0);                              // id of intersected object
@@ -161,12 +162,12 @@ Vec radiance(const Ray &r, int depth, unsigned short *Xi)
     Vec nl = n.dot(r.d) < 0 ? n : n * -1;
     Vec f = obj.c;
     double p = f.x>f.y && f.x>f.z ? f.x : f.y>f.z ? f.y : f.z; // max refl
-    if (++depth > 5) {
+    if (++depth > 5 || !p) {
         double rnd = erand48(Xi); // Russian roulette
         if (rnd < p && depth < 100) {
             f = f*(1/p);
         } else {
-            return obj.e;
+            return obj.e*E;
         }
     }
     if (obj.refl == DIFF) {                  // Ideal DIFFUSE reflection
@@ -177,9 +178,31 @@ Vec radiance(const Ray &r, int depth, unsigned short *Xi)
         Vec u = ((fabs(w.x) > .1 ? Vec(0,1) : Vec(1)) % w).norm();
         Vec v = w % u;
         Vec d = (u*cos(r1)*r2s + v*sin(r1)*r2s + w*sqrt(1-r2)).norm();
-        return obj.e + f.mult(radiance(Ray(x,d),depth,Xi));
+        // Loop over any lights
+        Vec e;
+        for (int i=0; i<numSpheres; i++){
+            const Sphere &s = spheres[i];
+            if (s.e.x <= 0 && s.e.y <= 0 && s.e.z <= 0) continue; // skip non-lights
+
+            Vec sw = s.p - x;
+            Vec su = ((fabs(sw.x) > .1 ? Vec(0,1) : Vec(1)) % sw).norm();
+            Vec sv = sw % su;
+            double cos_a_max = sqrt(1 - s.rad*s.rad/(x - s.p).dot(x - s.p));
+            double eps1 = erand48(Xi);
+            double eps2 = erand48(Xi);
+            double cos_a = 1 - eps1 + eps1 * cos_a_max;
+            double sin_a = sqrt(1 - cos_a * cos_a);
+            double phi = 2*M_PI*eps2;
+            Vec l = su * cos(phi) * sin_a + sv * sin(phi) * sin_a + sw * cos_a;
+            l.norm();
+            if (intersect(Ray(x,l), t, id) && id == i){  // shadow ray
+                double omega = 2*M_PI*(1 - cos_a_max);
+                e = e + f.mult(s.e*l.dot(nl)*omega)*M_1_PI;  // 1/pi for brdf
+            }
+        }
+        return obj.e*E + f.mult(radiance(Ray(x,d),depth,Xi, 0));
     }
-    if (obj.refl == SPEC)            // Ideal SPECULAR reflection
+    if (obj.refl == SPEC)                       // Ideal SPECULAR reflection
         return obj.e + f.mult(radiance(Ray(x,r.d-n*2*n.dot(r.d)),depth,Xi));
     Ray reflRay(x, r.d - n*2*n.dot(r.d));     // Ideal dielectric REFRACTION
     bool into = n.dot(nl) > 0;                // Ray from outside going in?
@@ -206,7 +229,7 @@ void render(int numSamples, int w, int h)
     //clock_t begin = clock();
     int t0 = time(NULL);
     //omp_set_dynamic(0);
-    #pragma omp parallel for schedule(dynamic, 1) private(r) // OpenMP num_threads(4)
+    #pragma omp parallel for schedule(dynamic, 1) private(r) num_threads(4) // OpenMP
     for (int y = 0; y < h; y++) { // Loop over image rows
         if (y % 10 == 0)
             fprintf(stderr, "\rRendering (%d spp) %5.2f%%", numSamples*4, 100.*y/(h-1));
@@ -240,7 +263,7 @@ void render(int numSamples, int w, int h)
 }
 int main(int argc, char *argv[])
 {
-    int defaultNumSamples = 40;
+    int defaultNumSamples = 400;
     int numSamples = argc==2 ? atoi(argv[1]) : defaultNumSamples;  // # samples per subpixel
     numSamples /= 4;
     int w = 1024, h = 768;
