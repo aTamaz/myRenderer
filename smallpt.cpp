@@ -58,10 +58,11 @@ struct Ray {
     Ray(Vec o_, Vec d_) : o(o_), d(d_) {}
 };
 enum Refl_t { DIFF, SPEC, REFR };  // material types, used in radiance()
+                                   // DIFFuse, SPECular, REFRactive
 struct Sphere {
     double rad;       // radius
     Vec p, e, c;      // position, emission, color
-    Refl_t refl;      // reflection type (DIFFuse, SPECular, REFRactive)
+    Refl_t refl;      // reflection type
     Sphere(double rad_, Vec p_, Vec e_, Vec c_, Refl_t refl_):
         rad(rad_), p(p_), e(e_), c(c_), refl(refl_) {}
     double intersect(const Ray &r) const { // returns distance, 0 if nohit
@@ -179,7 +180,7 @@ Vec radiance(const Ray &r, int depth, unsigned short *Xi, int E = 1)
         Vec d = (u*cos(r1)*r2s + v*sin(r1)*r2s + w*sqrt(1-r2)).norm();
         // Loop over any lights
         Vec e;
-        for (int i=0; i<numSpheres; i++){
+        for (int i=0; i<numSpheres; i++) {
             const Sphere &s = spheres[i];
             if (s.e.x <= 0 && s.e.y <= 0 && s.e.z <= 0) continue; // skip non-lights
 
@@ -194,7 +195,7 @@ Vec radiance(const Ray &r, int depth, unsigned short *Xi, int E = 1)
             double phi = 2*M_PI*eps2;
             Vec l = su * cos(phi) * sin_a + sv * sin(phi) * sin_a + sw * cos_a;
             l.norm();
-            if (intersect(Ray(x,l), t, id) && id == i){  // shadow ray
+            if (intersect(Ray(x,l), t, id) && id == i) {  // shadow ray
                 double omega = 2*M_PI*(1 - cos_a_max);
                 e = e + f.mult(s.e*l.dot(nl)*omega)*M_1_PI;  // 1/pi for brdf
             }
