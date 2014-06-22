@@ -1,8 +1,8 @@
 cmake_minimum_required (VERSION 2.8.11)
-project (smallpt)
-set (src smallpt.cpp lodepng.cpp)
+project (myRenderer)
+set (srcFiles main.cpp lodepng.cpp)
 
-add_executable(${PROJECT_NAME} ${src})
+add_executable(${PROJECT_NAME} ${srcFiles})
 
 ## Compiler flags
 if(CMAKE_COMPILER_IS_GNUCXX)
