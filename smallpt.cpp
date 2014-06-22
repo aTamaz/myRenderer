@@ -200,7 +200,7 @@ Vec radiance(const Ray &r, int depth, unsigned short *Xi, int E = 1)
                 e = e + f.mult(s.e*l.dot(nl)*omega)*M_1_PI;  // 1/pi for brdf
             }
         }
-        return obj.e*E + f.mult(radiance(Ray(x,d),depth,Xi, 0));
+        return obj.e*E + e + f.mult(radiance(Ray(x,d),depth,Xi, 0));
     }
     if (obj.refl == SPEC)                       // Ideal SPECULAR reflection
         return obj.e + f.mult(radiance(Ray(x,r.d-n*2*n.dot(r.d)),depth,Xi));
